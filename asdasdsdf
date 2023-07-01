@@ -1,0 +1,78 @@
+CREATE OR REPLACE FUNCTION "public"."get_sort_array"("in_task_id" int4)
+  RETURNS TABLE("rhw_array" _int8, "rkh_array" _int8, "rdhw_array" _int8, "rdkh_array" _int8) AS $BODY$
+DECLARE
+    hw_array INT[] := '{}';
+		kh_array INT[] := '{}';
+		dhw_array INT[] := '{}';
+		dkh_array INT[] := '{}';
+		sort_array INT[][];
+		curr_node_type INT;
+		hw_sort INT;
+		kh_sotr INT;
+		dhw_sort INT;
+		dkh_sotr INT;
+		node CURSOR FOR SELECT sort,code FROM ddd where ddd.task_id=in_task_id;
+		row_variable RECORD;
+BEGIN
+   OPEN node;
+     -- Fetch rows from the cursor
+    LOOP
+        FETCH node INTO row_variable;
+         -- Exit loop if no more rows
+        EXIT WHEN NOT FOUND;
+        IF row_variable.code = 202 then
+					if curr_node_type=1 then 
+						hw_sort := row_variable.sort;
+					ELSEIF curr_node_type =2 then
+						dhw_sort := row_variable.sort;
+					end if;
+			  ELSEIF row_variable.code = 203 then
+					if curr_node_type=1 then 
+						kh_sotr:=row_variable.sort;
+					ELSEIF curr_node_type =2 then
+						dkh_sotr:=row_variable.sort;
+					end if;
+				ELSEIF row_variable.code in (101,102) then
+					if curr_node_type =2 then
+						if dhw_sort is not null then
+							dhw_array := array_append(dhw_array, dhw_sort);
+						end if;
+						if dkh_sotr is not null then
+							dkh_array := array_append(dkh_array, dkh_sotr);
+						end if;
+					end if;	
+					dhw_sort := null;
+					dkh_sotr := null;
+					curr_node_type=1;
+				ELSEIF row_variable.code in (104) then
+					if curr_node_type =1 then
+						if hw_sort is not null then
+							hw_array := array_append(hw_array, hw_sort);
+						end if;
+						if kh_sotr is not null then
+							kh_array := array_append(kh_array, kh_sotr);
+						end if;		
+					end if;		
+					hw_sort := null;
+					kh_sotr := null;
+					curr_node_type=2;
+			 end if;
+     END LOOP;
+     -- Close the cursor
+    CLOSE node;
+		
+		IF hw_sort is not null then hw_array := array_append(hw_array, hw_sort); end if;
+		IF kh_sotr is not null then kh_array := array_append(kh_array, kh_sotr); end if;
+		IF dhw_sort is not null then dhw_array := array_append(dhw_array, dhw_sort); end if;
+		IF dkh_sotr is not null then dkh_array := array_append(dkh_array, dkh_sotr); end if;
+		rhw_array:=hw_array;
+		rkh_array:=kh_array;
+		rdhw_array:=dhw_array;
+		rdkh_array:=dkh_array;
+		RETURN NEXT;
+	  RETURN;
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100
+  ROWS 1000
