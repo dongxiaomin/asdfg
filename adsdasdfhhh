@@ -1,0 +1,16 @@
+SELECT
+	t1.task_id,	ss.groupid,
+CASE		
+		WHEN ex = survey THEN
+		(SELECT NAME FROM	log WHERE	log.task_id = t1.task_id AND log.sort = survey AND log.groupid <> ss.groupid 
+		ORDER BY	create_time DESC 	LIMIT 1 ) 
+		ELSE ( SELECT NAME FROM log WHERE log.task_id = t1.task_id AND log.sort = survey ORDER BY create_time DESC LIMIT 1 ) 
+END AS NAME,
+CASE		
+		WHEN ex > survey OR ex IS NULL THEN
+			( SELECT create_time FROM log WHERE log.task_id = t1.task_id AND log.sort = survey ORDER BY create_time DESC LIMIT 1 ) 
+END AS create_time 
+	FROM
+		task t1
+	LEFT JOIN ( SELECT task_id, sort, MAX ( groupid ) groupid FROM log l GROUP BY task_id, sort ) ss ON t1.task_id = ss.task_id 
+	AND ss.sort = t1.survey
